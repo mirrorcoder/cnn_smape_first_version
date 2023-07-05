@@ -17,11 +17,12 @@ from sklearn.preprocessing import LabelEncoder
 
 
 MODE = "FIT1"
+# INPUT_FILE = 'ETHUSDT_1h_2806_cut_first_values.csv'
 INPUT_FILE = 'ETHUSDT_1h_0507.csv'
-FILE_FOR_BEST_MODEL = 'best_model_cnn_second_version.h5'
+FILE_FOR_BEST_MODEL = 'best_model_cnn_second_version_new_bins_and_accuracy_stable_class_low.h5'
 COLUMNS_TO_KEEP = ['Open', 'High', 'Low', 'Close', 'Volume', 'Taker buy base asset volume']
 SCALER_CNN_SMAPE = 'scaler_cnn_smape.pkl'
-
+BINS_FUNCTION = lambda data: [-np.inf, -0.017, -0.005, 0.005, 0.017, np.inf]
 
 def add_indicators(data):
     # Add RSI
@@ -41,7 +42,8 @@ def categorize_outputs(data, periods=3):
     data['Pct_change'].fillna(0, inplace=True) # replace NaNs with 0
     data.dropna(inplace=True) # or remove rows with NaNs
     # Categorize outputs
-    bins = [-np.inf, -0.03, -0.01, 0.01, 0.03, np.inf]
+    bins = BINS_FUNCTION(data)
+
     labels = ['Strong decrease', 'Weak decrease', 'Stable', 'Weak increase', 'Strong increase']
     data['Category'] = pd.cut(data['Pct_change'], bins=bins, labels=labels)
 
@@ -110,7 +112,7 @@ if MODE == 'FIT':
     encoder = LabelEncoder()
     data_scaled[:, -1] = encoder.fit_transform(data_scaled[:, -1])
 
-    tscv = TimeSeriesSplit(n_splits=5)
+    tscv = TimeSeriesSplit(n_splits=3)
     for train_index, test_index in tscv.split(data_scaled):
         X_train, X_test = data_scaled[train_index], data_scaled[test_index]
         X_train, Y_train = create_dataset(X_train, look_back, look_forward)
@@ -127,7 +129,7 @@ if MODE == 'FIT':
 
         # Create class weights dictionary
         class_weight_dict = {i: weight for i, weight in enumerate(class_weights)}
-
+        class_weight_dict[2] *= 0.9
         # Создание и компиляция модели
         model = Sequential()
         model.add(
@@ -136,7 +138,7 @@ if MODE == 'FIT':
         model.add(Dense(50, activation='relu'))
         model.add(
             Dense(5, activation='softmax'))  # Использование функции активации softmax для многоклассовой классификации
-        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+        model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=[tf.keras.metrics.Precision()])
 
         # Обучение модели
         history = model.fit(X_train, Y_train, validation_data=(X_test, Y_test), epochs=200,
