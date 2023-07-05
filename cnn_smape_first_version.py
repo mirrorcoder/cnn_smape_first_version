@@ -1,6 +1,8 @@
 import pandas as pd
 import numpy as np
 import pickle
+
+from keras.layers import BatchNormalization
 from sklearn.metrics import classification_report
 from sklearn.metrics import confusion_matrix
 from sklearn.preprocessing import MinMaxScaler
@@ -16,10 +18,10 @@ import talib
 from sklearn.preprocessing import LabelEncoder
 
 
-MODE = "FIT1"
-# INPUT_FILE = 'ETHUSDT_1h_2806_cut_first_values.csv'
-INPUT_FILE = 'ETHUSDT_1h_0507.csv'
-FILE_FOR_BEST_MODEL = 'best_model_cnn_second_version_new_bins_and_accuracy_stable_class_low.h5'
+MODE = "FIT"
+INPUT_FILE = 'ETHUSDT_1h_2806_cut_first_values.csv'
+# INPUT_FILE = 'ETHUSDT_1h_0507.csv'
+FILE_FOR_BEST_MODEL = 'best_model_cnn_add_batch_normalizier.h5'
 COLUMNS_TO_KEEP = ['Open', 'High', 'Low', 'Close', 'Volume', 'Taker buy base asset volume']
 SCALER_CNN_SMAPE = 'scaler_cnn_smape.pkl'
 BINS_FUNCTION = lambda data: [-np.inf, -0.017, -0.005, 0.005, 0.017, np.inf]
@@ -134,8 +136,10 @@ if MODE == 'FIT':
         model = Sequential()
         model.add(
             Conv1D(filters=32, kernel_size=2, activation='relu', input_shape=(X_train.shape[1], X_train.shape[2])))
+        model.add(BatchNormalization())  # добавление слоя Batch Normalization после Conv1D
         model.add(Flatten())
         model.add(Dense(50, activation='relu'))
+        model.add(BatchNormalization())  # добавление слоя Batch Normalization после Conv1D
         model.add(
             Dense(5, activation='softmax'))  # Использование функции активации softmax для многоклассовой классификации
         model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=[tf.keras.metrics.Precision()])
