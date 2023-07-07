@@ -21,11 +21,13 @@ from sklearn.preprocessing import LabelEncoder
 
 
 MODE = "FIT1"
+# INPUT_FILE = 'ETHUSDT_1h_0507.csv'
 # INPUT_FILE = 'ETHUSDT_1h_2806_cut_first_values.csv'
-INPUT_FILE = 'ETHUSDT_1h_0507.csv'
-FILE_FOR_BEST_MODEL = 'best_model_gru_precision.h5'
+# INPUT_FILE = 'ETHUSDT_15m_2806.csv'
+INPUT_FILE = 'ETHUSDT_15m_0707.csv'
+FILE_FOR_BEST_MODEL = 'best_model_cnn_precision_period_8_15m.h5'
 COLUMNS_TO_KEEP = ['Open', 'High', 'Low', 'Close', 'Volume', 'Taker buy base asset volume']
-SCALER_CNN_SMAPE = 'scaler_cnn_smape.pkl'
+SCALER_CNN_SMAPE = 'scaler_cnn_smape_15m.pkl'
 BINS_FUNCTION = lambda data: [-np.inf, -0.017, -0.005, 0.005, 0.017, np.inf]
 
 def add_indicators(data):
@@ -93,7 +95,7 @@ if MODE == 'FIT':
     data = data[COLUMNS_TO_KEEP]
     # Apply functions
     data = add_indicators(data)
-    data = categorize_outputs(data)
+    data = categorize_outputs(data, 8)
     class_counts = data['Category'].value_counts()
     print(class_counts)
     # Преобразование категорий в one-hot encoding
@@ -137,9 +139,8 @@ if MODE == 'FIT':
         # Создание и компиляция модели
         model = Sequential()
         model.add(
-            GRU(50, return_sequences=False, dropout=0.1, recurrent_dropout=0.1,
-                input_shape=(X_train.shape[1], X_train.shape[2]))
-        )
+            Conv1D(filters=32, kernel_size=2, activation='relu', input_shape=(X_train.shape[1], X_train.shape[2])))
+        model.add(Flatten())
         model.add(Dense(50, activation='relu'))
         model.add(
             Dense(5, activation='softmax'))  # Использование функции активации softmax для многоклассовой классификации
@@ -155,7 +156,7 @@ else:
     data = data[COLUMNS_TO_KEEP]
     # Apply functions
     data = add_indicators(data)
-    data = categorize_outputs(data)
+    data = categorize_outputs(data, 8)
     class_counts = data['Category'].value_counts()
     print(class_counts)
     # Преобразование категорий в one-hot encoding
